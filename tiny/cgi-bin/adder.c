@@ -14,6 +14,7 @@ int main() {
   int n1 = 0, n2 = 0;
   
   // QUERY_STRING에서 두 개의 인자를 추출한다.
+  // 여기서 QUERY_STRING은 URI에서 클라이언트가 보낸 인자인 id=HTML&name=egoing 부분이다.
   if ((buf = getenv("QUERY_STRING")) != NULL) {
     p = strchr(buf, '&');                                                               // buf 문자열에서 '&'를 가리키는 포인터를 반환한다.
     *p = '\0';                                                                          // buf 문자열에서 '&'를 '\0'으로 바꾼다.
