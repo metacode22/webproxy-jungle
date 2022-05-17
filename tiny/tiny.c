@@ -11,9 +11,9 @@
 void doit(int fd);
 void read_requesthdrs(rio_t *rp);
 int parse_uri(char *uri, char *filename, char *cgiargs);
-void serve_static(int fd, char *filename, int filesize);
+void serve_static(int fd, char *filename, int filesize, char *method);
 void get_filetype(char *filename, char *filetype);
-void serve_dynamic(int fd, char *filename, char *cgiargs);
+void serve_dynamic(int fd, char *filename, char *cgiargs, char *method);
 void clienterror(int fd, char *cause, char *errnum, char *shortmsg,
                  char *longmsg);
                  
@@ -79,8 +79,8 @@ void doit(int fd) {
   printf("%s", buf);                                                                  // 위 Rio_readlineb에서 한 줄을 읽었다. buf = "GET /godzilla.gif HTTP/1.1\0"를 출력해준다. 아마 connfd의 첫째 줄에는 클라이언트가 보낸 저 문구가 있지 않았을까?
   sscanf(buf, "%s %s %s", method, uri, version);                                      // buf에서 문자열 3개를 가져와서 method, uri, version이라는 문자열에 저장한다. 즉 위 예시대로라면 GET, godzilla.gif, HTTP/1.1 정도가 저장될 것이다.
   
-  // 클라이언트의 request header의 method가 GET이 아니면 doit 함수는 끝나고 main으로 돌아가서 Close가 된다. 하지만 while(1)이므로 서버는 계속 연결 요청을 기다리게 된다.
-  if (strcasecmp(method, "GET")) {                                                    // 우리가 만드는 Tiny 서버는 GET만 지원하므로 GET이 아닐 경우 connfd에 에러 메세지를 띄운다. strcasecmp는 대문자 상관없이 인자를 비교하고 같으면 0을 반환한다.
+  // 클라이언트의 request header의 method가 GET or HEAD가 아니면 doit 함수는 끝나고 main으로 돌아가서 Close가 된다. 하지만 while(1)이므로 서버는 계속 연결 요청을 기다리게 된다.
+  if (!(strcasecmp(method, "GET") == 0 || strcasecmp(method, "HEAD") == 0)) {         // 우리가 만드는 Tiny 서버는 GET, HEAD만 지원하므로 GET이 아닐 경우 connfd에 에러 메세지를 띄운다. strcasecmp는 대문자 상관없이 인자를 비교하고 같으면 0을 반환한다.
     clienterror(fd, method, "501", "Not implemented", "Tiny does not implement this method");
     return;
   }
@@ -113,7 +113,7 @@ void doit(int fd) {
     
     // 정적 컨텐츠를 클라이언트로 보내주는 작업을 수행한다.
     // 정적 컨텐츠라서 인자가 필요하지 않으니 따로 인자를 넘겨줄 필요는 없다.
-    serve_static(fd, filename, sbuf.st_size);
+    serve_static(fd, filename, sbuf.st_size, method);
   }
   
   // 동적 컨텐츠라면
@@ -128,7 +128,7 @@ void doit(int fd) {
     
     // 동적 컨텐츠를 클라이언트로 보내주는 작업을 수행한다.
     // 동적 컨텐츠이니 클라이언트가 요구한 인자도 같이 넘겨준다.
-    serve_dynamic(fd, filename, cgiargs);
+    serve_dynamic(fd, filename, cgiargs, method);
   }
 }
 
@@ -238,7 +238,7 @@ int parse_uri(char *uri, char *filename, char *cgiargs)
 /*
  * serve_static - 응답 메세지를 구성하고 정적 컨텐츠를 처리(connfd로)한다.
  */   
-void serve_static(int fd, char *filename, int filesize)
+void serve_static(int fd, char *filename, int filesize, char *method)
 {
   int srcfd;
   char *srcp, filetype[MAXLINE], buf[MAXBUF];
@@ -254,7 +254,11 @@ void serve_static(int fd, char *filename, int filesize)
   /* 응답 메세제지를 클라이언트에게 보냄 */
   Rio_writen(fd, buf, strlen(buf));                                                   // connfd를 통해 클라이언트에게 보낸다.
   printf("Response headers:\n");                                                      // 서버 측에서도 출력한다.
-  printf("%s", buf);                                                                  
+  printf("%s", buf);
+  
+  if (strcasecmp(method, "HEAD") == 0) {
+    return;
+  }                                                                
 
   // Mmap, Munmap 이용 시
   // srcfd는 home.html을 가리키는 식별자
@@ -300,7 +304,7 @@ void get_filetype(char *filename, char *filetype)
 /*
  * serve_dynamic - 응답 메세지를 구성하고 동적 컨텐츠를 처리(connfd로)한다.
  */   
-void serve_dynamic(int fd, char *filename, char *cgiargs)
+void serve_dynamic(int fd, char *filename, char *cgiargs, char *method)
 {
   char buf[MAXLINE], *emptylist[] = { NULL };
 
@@ -317,6 +321,7 @@ void serve_dynamic(int fd, char *filename, char *cgiargs)
     // 여기서 QUERY_STRING은 URI에서 클라이언트가 보낸 인자인 id=HTML&name=egoing와 같은 부분이다.
     // 이를 통해서 우리의 동적 컨텐츠 처리 애플리케이션(응용)인 adder.c가 이 환경변수의 QUERY_STRING으로 동적인 처리를 할 수 있게 된다. 여기서 동적인 처리는 그냥 더하기이다. 단순히 인자를 통해서 새로운 결과물을 낼 수 있기 때문에 동적 처리라고 할 수 있고 우리는 그 예로 아주 간단한 더하기를 사용하였다.
     setenv("QUERY_STRING", cgiargs, 1);
+    setenv("REQUEST_METHOD", method, 1);
 
     // 클라이언트의 표준 출력을 CGI 프로그램의 표준 출력과 연결한다.
     // 이제 CGI 프로그램에서 printf하면 클라이언트에서 출력된다.
