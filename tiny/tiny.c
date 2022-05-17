@@ -256,15 +256,24 @@ void serve_static(int fd, char *filename, int filesize)
   printf("Response headers:\n");                                                      // 서버 측에서도 출력한다.
   printf("%s", buf);                                                                  
 
+  // Mmap, Munmap 이용 시
   // srcfd는 home.html을 가리키는 식별자
   // 이 떄 이 srcfd를 가상 메모리에 할당한다.
   // 이 가상 메모리를 다시 connfd로 옮긴다.
   // 그리고 이 srcfd를 프리시킨다.
-  srcfd = Open(filename, O_RDONLY, 0);                                                // filename의 이름을 갖는 파일을 읽기 권한으로 불러온다.
-  srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0);                         // 메모리에 파일 내용을 동적할당한다.
-  Close(srcfd);                                                                       // 파일을 닫는다. 
-  Rio_writen(fd, srcp, filesize);                                                     // 동적 할당을 받아 메모리에 복사한, 즉 srcp가 가리키는 메모리에 있는 파일 내용들을 fd에 보낸다.
-  Munmap(srcp, filesize);                                                             // 할당 받은 것을 해제시킨다.
+  // srcfd = Open(filename, O_RDONLY, 0);                                                // filename의 이름을 갖는 파일을 읽기 권한으로 불러온다.
+  // srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0);                         // 메모리에 파일 내용을 동적할당한다.
+  // Close(srcfd);                                                                       // 파일을 닫는다. 
+  // Rio_writen(fd, srcp, filesize);                                                     // 동적 할당을 받아 메모리에 복사한, 즉 srcp가 가리키는 메모리에 있는 파일 내용들을 fd에 보낸다.
+  // Munmap(srcp, filesize);                                                             // 할당 받은 것을 해제시킨다.
+  
+  // Malloc, free 이용시
+  srcfd = Open(filename, O_RDONLY, 0);
+  srcp = (char *)Malloc(filesize);
+  Rio_readn(srcfd, srcp, filesize);
+  Close(srcfd);
+  Rio_writen(fd, srcp, filesize);
+  Free(srcp);
 }
 
 /*
@@ -280,6 +289,10 @@ void get_filetype(char *filename, char *filetype)
     strcpy(filetype, "image/png");
   else if (strstr(filename, ".jpg"))
     strcpy(filetype, "image/jpeg");
+  else if (strstr(filename, ".mp4"))
+    strcpy(filetype, "video/mp4");
+  else if (strstr(filename, ".mpeg"))
+    strcpy(filetype, "video/mpeg");
   else
     strcpy(filetype, "text/plain");
 }

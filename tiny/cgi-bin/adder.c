@@ -27,7 +27,7 @@ int main() {
   // int sprinf(char* str, const char* format, ...) : str에 foramt을 저장한다. 출력할 값을 문자열에 저장하는 함수라고 생각하면 된다.
   // content라는 string에 응답 본체를 담는다.
   sprintf(content, "QUERY_STRING=%s", buf);                                             // content에 QUERY_STRING=buf를 저장한다. 덮어씌워지는 건데 왜 하지?
-  sprintf(content, "Welcome to add.com: ");
+  sprintf(content, "Welcome to add.com: [Dynamic Content(adder.c)] ");
   sprintf(content, "%sTHE Internet addition portal. \r\n<p>", content);
   sprintf(content, "%sThe answer is: %d + %d = %d\r\n<p>", content, n1, n2, n1 + n2);   // 인자를 처리해줬다. 동적으로 반응해줬다!
   sprintf(content, "%sThanks for visiting!\r\n", content);
