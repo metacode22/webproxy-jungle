@@ -159,6 +159,9 @@ void doit(int connfd) {
 
   // proxy와 end_server 사이에서 쓰고 읽을 수 있는 RIO가 생겼다.
   Rio_readinitb(&server_rio, end_serverfd);
+  
+  // 추가 by.승우쨩
+  // printf("endserver request: \n%s\n", endserver_http_header);
 
   // write the http header to endserver
   Rio_writen(end_serverfd, endserver_http_header, strlen(endserver_http_header));

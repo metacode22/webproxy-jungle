@@ -29,7 +29,7 @@ void clienterror(int fd, char *cause, char *errnum, char *shortmsg,
 // port 번호를 인자로 받는다. 
 int main(int argc, char **argv) {
   int listenfd, connfd;                                                               // 서버 측에서 생성하는 listenfd, connfd 소켓
-  char hostname[MAXLINE], port[MAXLINE];                                              // 클라이언트의 hostname(IP 주소)과 port 번호
+  char hostname[MAXLINE], port[MAXLINE];                                              // 클라이언트의 hostname(IP 주소)과 port 번호를 저장할 것이다.
   socklen_t clientlen;
   struct sockaddr_storage clientaddr;                                                 // 클라이언트에서 connect 요청을 보내면, 서버 측에서 알 수 있게 되는 클라이언트 소켓의 주소이다.
   

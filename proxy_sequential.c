@@ -22,26 +22,22 @@ void parse_uri(char *uri, char *hostname, char *path, int *port);
 void build_http_header(char *http_header, char *hostname, char *path, int port, rio_t *client_rio);
 int connect_endServer(char *hostname, int port, char *http_header);
 
-// listenfd = 3
-// connfd = 4
-// end_serverfd = 5
-
 int main(int argc, char **argv) {
     int listenfd, connfd;
-    socklen_t clientlen;                                                                    // buf에 clientlen만큼 넣을려고
-    char hostname[MAXLINE], port[MAXLINE];                                                  // client hostname(IP 주소), client port
+    socklen_t clientlen;
+    char hostname[MAXLINE], port[MAXLINE];
     
     struct sockaddr_storage clientaddr;
     
     if (argc != 2) {
-        fprintf(stderr, "usage: %s <port>\n", argv[0]);                                     // 버퍼 없이 바로 출력한다. fprintf는 버퍼에 담았다가 출력한다. 하지만 stderr는 버퍼없이 출력한다. 그냥 printf는 버퍼를 쓰지 않는다.
-        exit(1);                                                                            // 1이면 에러 시 강제 종료
+        fprintf(stderr, "usage: %s <port>\n", argv[0]);
+        exit(1);
     }
     
     listenfd = Open_listenfd(argv[1]);
     while(1) {
         clientlen = sizeof(clientaddr);
-        connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);                           // 대문자 Accept는 오류가 났을 때 무슨 메세지를 띄울지 내부적으로 코드가 담겨 있다.
+        connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
         
         Getnameinfo((SA *)&clientaddr, clientlen, hostname, MAXLINE, port, MAXLINE, 0);
         printf("Accepted connection from (%s %s). \n", hostname, port);
@@ -74,23 +70,13 @@ void doit(int connfd) {
     
     // client가 보낸 uri를 분석하여 hostname, path, port 값을 갱신한다.
     parse_uri(uri, hostname, path, &port);
-    printf("1. %s\n", uri);
-    printf("2. %s\n", hostname);
-    printf("3. %s\n", path);
-    printf("4. %d\n", port);
     
     // proxy는, end_server로 보낼 HTTP header를 구성한다.
     // build_http_header함수를 거쳐 완성될 end_server의 응답 헤더, end_server의 hostname(IP 주소), path?, 서버 port 번호, client와 proxy간의 connfd
     build_http_header(endserver_http_header, hostname, path, port, &rio);
-    printf("repeat\n");
-    printf("1. %s\n", uri);
-    printf("2. %s\n", hostname);
-    printf("3. %s\n", path);
-    printf("4. %d\n", port);
     
     // proxy를 end_server와 연결시킨다.
     // 여기서 end_serverfd는, tiny에서 connfd와 역할이 같다.
-    // 이 때 end_serverfd의 값은 5이다.
     end_serverfd = connect_endServer(hostname, port, endserver_http_header);
     
     // 연결 실패 시 에러 문구 띄우고 end_server와 연결할 수 없다는 의미이므로 main 함수가 종료된다. 즉 proxy 서버 또한 종료된다.
@@ -102,13 +88,11 @@ void doit(int connfd) {
     
     // end_serverfd, 즉 proxy와 end_server간의 데이터를 쓰고 읽는 공간에 RIO 패키지를 연결해, RIO 방식으로 proxy와 end_server간 RIO 패키지를 이용해 데이터를 읽고 쓸 수 있도록 만든다.
     Rio_readinitb(&server_rio, end_serverfd);
-    
-    // proxy에서 end_server로 데이터를 보내는 부분
     Rio_writen(end_serverfd, endserver_http_header, strlen(endserver_http_header));         // endserver_http_header에서 end_serverfd로 endserver_http_header만큼의 바이트를 전송한다.
     
     size_t n;
     while((n = Rio_readlineb(&server_rio, buf, MAXLINE)) != 0) {                            // end_server의 응답 한줄 한줄을 buf에 저장한다. 한줄이 0바이트이면, 즉 다 읽었으면 while문을 빠져나간다. end_server의 응답을 proxy가 받은 셈이다.
-        // printf("proxy received %d bytes, then send\n", n);                                  // 한줄 한줄 얼마만큼의 바이트를 읽었는지 출력시킨다.
+        printf("proxy received %d bytes, then send\n", n);                                  // 한줄 한줄 얼마만큼의 바이트를 읽었는지 출력시킨다.
         Rio_writen(connfd, buf, n);                                                         // proxy는 end_server로부터 받은 응답 한줄인 buf를, client와 proxy가 연결된 공간(소켓)인 connfd을 통해 client에게 데이터를 전송한다.
     }
     
@@ -120,8 +104,8 @@ void doit(int connfd) {
 void build_http_header(char *http_header, char *hostname, char *path, int port, rio_t *client_rio) {
     char buf[MAXLINE], request_hdr[MAXLINE], other_hdr[MAXLINE], host_hdr[MAXLINE];
     
-    // path는 /home.html같은 모양
     sprintf(request_hdr, requestlint_hdr_format, path);                                     // requestlint_hdr_format의 %s에 path가 들어가고, 그렇게 완성된 requestlint_hdr_format이 reqeust_hdr이 된다.
+    printf(request_hdr, requestlint_hdr_format, path);
     
     while (Rio_readlineb(client_rio, buf, MAXLINE) > 0) {                                   // 여기서 client_rio는, client와 proxy 사이의 공간인 connfd와 연결되어있다. 즉, 클라이언트가 보낸 데이터 한줄 한줄을 buf에 담게 된다.
         
@@ -149,15 +133,12 @@ void build_http_header(char *http_header, char *hostname, char *path, int port, 
     }
     
     // http_header는 doit 함수에서 endserver_http_header였다. 즉, endserver_http_header를 구성한다.
-    // request : METHOD PATH HTTP 버전
-    // host : 서버 주소 + 포트 번호
     sprintf(http_header,"%s%s%s%s%s%s%s",
             request_hdr,
             host_hdr,
             conn_hdr,
             prox_hdr,
             user_agent_hdr,
-            // 이 위에는 순서가 중요하다. 하지만 밑에는 변동될 수 있다고 한다. 따라서 그냥 other로 퉁친.
             other_hdr,
             endof_hdr);
             
@@ -171,22 +152,18 @@ inline int connect_endServer(char *hostname, int port, char *http_header) {
     return Open_clientfd(hostname, portStr);
 }
 
-// path는 tiny의 filename이다.
 void parse_uri(char *uri, char *hostname, char *path, int *port) {
     *port = 80;                                                                             // HTTP 기본 포트 설정 값
     char* pos = strstr(uri, "//");
     
     pos = ((pos != NULL) ? (pos + 2) : (uri));                                              // pos가 NULL이 아니라면 pos는 // 바로 뒤를 가리키게 된다. NULL이면 uri의 처음을 가리키게 된다.
     
-    char *pos2 = strstr(pos, ":");
+    char *pos2 = strstr(pos, ':');
     
-    //ex. localhost:5000/home.html
     if (pos2 != NULL) {
         *pos2 = '\0';
         sscanf(pos, "%s", hostname);
         sscanf(pos2 + 1, "%d%s", port, path);
-        
-    // port 번호를 입력안해줬으면 80을 기본값으로 해준다.
     } else {
         pos2 = strstr(pos, "/");
         if(pos2 != NULL)
