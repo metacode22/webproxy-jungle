@@ -74,8 +74,8 @@ void doit(int fd) {
   
   // 클라이언트가 보낸 request header를 RIO 패키지로 읽고 분석한다.
   Rio_readinitb(&rio, fd);                                                            // connfd를 rio에 위치한 rio_t 타입의 읽기 버퍼(그냥 RIO I/O를 쓸 수 있는 공간이라고 이해하자)와 연결한다. 네트워크 통신에 적합한(short count를 자동으로 처리하는) RIO I/O로 connfd를 통해 데이터를 읽고 쓸 수 있게 만든다.
-  printf("Request headers:\n");
   Rio_readlineb(&rio, buf, MAXLINE);                                                  // rio에 있는, 즉 connfd에 있는 문자열 한 줄을 읽어와서 buf로 옮긴다. 그리고 그 문자열 한 줄을 NULL로 바꾼다.
+  printf("Request headers:\n");
   printf("%s", buf);                                                                  // 위 Rio_readlineb에서 한 줄을 읽었다. buf = "GET /godzilla.gif HTTP/1.1\0"를 출력해준다. 아마 connfd의 첫째 줄에는 클라이언트가 보낸 저 문구가 있지 않았을까?
   sscanf(buf, "%s %s %s", method, uri, version);                                      // buf에서 문자열 3개를 가져와서 method, uri, version이라는 문자열에 저장한다. 즉 위 예시대로라면 GET, godzilla.gif, HTTP/1.1 정도가 저장될 것이다.
   
@@ -158,9 +158,6 @@ void clienterror(int fd, char *cause, char *errnum, char *shortmsg, char *longms
   Rio_writen(fd, body, strlen(body));
 }
 
-/*
- * read_requesthdrs - method / IP 주소 / version 한 줄 읽고 read_requesthdrs를 만난다. 즉 1줄 다음을 읽고 프린트한다.
- */
 void read_requesthdrs(rio_t *rp)
 {
   char buf[MAXLINE];
