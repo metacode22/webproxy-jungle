@@ -15,24 +15,24 @@ int main() {
   
   // QUERY_STRING에서 두 개의 인자를 추출한다.
   // 여기서 QUERY_STRING은 URI에서 클라이언트가 보낸 인자인 id=HTML&name=egoing 부분이다.
-  if ((buf = getenv("QUERY_STRING")) != NULL) {
-    p = strchr(buf, '&');                                                               // buf 문자열에서 '&'를 가리키는 포인터를 반환한다.
-    *p = '\0';                                                                          // buf 문자열에서 '&'를 '\0'으로 바꾼다.
-    strcpy(arg1, buf);                                                                  // buf 문자열에서 \0 전까지의 문자열을 arg1에 넣는다.
-    strcpy(arg2, p + 1);                                                                // buf 문자열에서 \0 뒤로의 문자열을 arg2에 넣는다.
-    n1 = atoi(arg1);                                                                    // arg1에서 오로지 숫자만 뽑아서 int형으로 바꾼다.
-    n2 = atoi(arg2);                                                                    // arg2에서 오로지 숫자만 뽑아서 int형으로 바꾼다.
-  }
+  // if ((buf = getenv("QUERY_STRING")) != NULL) {
+  //   p = strchr(buf, '&');                                                               // buf 문자열에서 '&'를 가리키는 포인터를 반환한다.
+  //   *p = '\0';                                                                          // buf 문자열에서 '&'를 '\0'으로 바꾼다.
+  //   strcpy(arg1, buf);                                                                  // buf 문자열에서 \0 전까지의 문자열을 arg1에 넣는다.
+  //   strcpy(arg2, p + 1);                                                                // buf 문자열에서 \0 뒤로의 문자열을 arg2에 넣는다.
+  //   n1 = atoi(arg1);                                                                    // arg1에서 오로지 숫자만 뽑아서 int형으로 바꾼다.
+  //   n2 = atoi(arg2);                                                                    // arg2에서 오로지 숫자만 뽑아서 int형으로 바꾼다.
+  // }
   
   method = getenv("REQUEST_METHOD");
   
   // home.html에서 사용자의 입력을 통해 동적 처리되도록 한다.
-  // if ((buf = getenv("QUERY_STRING")) != NULL) {
-  //   p = strchr(buf, '&');
-  //   *p = '\0';
-  //   sscanf(buf, "first=%d", &n1);
-  //   sscanf(p+1, "second=%d", &n2);
-  // }
+  if ((buf = getenv("QUERY_STRING")) != NULL) {
+    p = strchr(buf, '&');
+    *p = '\0';
+    sscanf(buf, "first=%d", &n1);
+    sscanf(p+1, "second=%d", &n2);
+  }
   
   // int sprinf(char* str, const char* format, ...) : str에 foramt을 저장한다. 출력할 값을 문자열에 저장하는 함수라고 생각하면 된다.
   // content라는 string에 응답 본체를 담는다.
